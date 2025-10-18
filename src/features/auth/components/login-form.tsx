@@ -7,6 +7,7 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import {
   Card,
   CardContent,
@@ -64,47 +65,48 @@ export const LoginForm = () => {
   const isPending = form.formState.isSubmitting
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>LOGIN TO CONTINUE</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
-              <div className="flex flex-col gap-4">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  disabled={isPending}
-                >
-                  Continue with GitHub
-                </Button>
+    <div className="min-h-screen flex flex-col bg-[#E9D8FD] relative overflow-hidden">
+      {/* Header */}
+      <div className="flex justify-between items-center px-8 py-6">
+        <div className="flex items-center gap-2">
+          <Image src="/icons/logo.png" alt="quiver" width={32} height={32} />
+          <h1 className="text-2xl font-bold text-gray-800">
+            Quiver
+          </h1>
+        </div>
+        {/* <div className="flex items-center">
+          <Link href="/signup" className="text-white text-bold px-6 py-2 rounded-2xl bg-[#7C3AED] hover:bg-[#6D28D9] hover:underline">
+            Sign Up
+          </Link>
+        </div> */}
+      </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  type="button"
-                  disabled={isPending}
-                >
-                  Continue with Google
-                </Button>
-              </div>
+      {/* Center Card */}
+      <div className="flex flex-1 items-center justify-center px-4 relative z-10">
+        <Card className="w-full max-w-md bg-white shadow-xl rounded-2xl border-0">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl font-bold text-gray-800">
+              Welcome Back!
+            </CardTitle>
+            <CardDescription className="text-gray-600 ">
+              Hey, Enter your details to get sign in to your account
+            </CardDescription>
+          </CardHeader>
 
-              <div className="grid gap-6">
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 mt-5 px-3">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Enter Email / Phone No</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          type="email"
-                          placeholder="you@example.com"
+                          placeholder="Enter your email or phone"
+                          className="rounded-xl"
                         />
                       </FormControl>
                       <FormMessage />
@@ -122,7 +124,8 @@ export const LoginForm = () => {
                         <Input
                           {...field}
                           type="password"
-                          placeholder="********"
+                          placeholder="Enter your password"
+                          className="rounded-xl"
                         />
                       </FormControl>
                       <FormMessage />
@@ -132,26 +135,63 @@ export const LoginForm = () => {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] rounded-xl"
                   disabled={isPending}
                 >
-                  Login
+                  Sign In
                 </Button>
-              </div>
 
-              <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <Link
-                  href="/signup"
-                  className="underline underline-offset-4"
-                >
-                  Sign up
-                </Link>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                <div className="flex items-center justify-center text-sm text-gray-900">
+                  Or Sign in with
+                </div>
+
+                  <Button variant="outline" className="w-full">
+                    <Image
+                      src="/icons/google.png"
+                      alt="Google"
+                      width={20}
+                      height={20}
+                      className="mr-2"
+                    />
+                    Login with Google
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    <Image
+                      src="/icons/github.svg"
+                      alt="Apple"
+                      width={20}
+                      height={20}
+                      className="mr-2"
+                    />
+                    Login with Github
+                  </Button>
+
+                <p className="text-center text-sm text-gray-700">
+                  Don’t have an account?{" "}
+                  <Link href="/signup" className="text-[#7C3AED] font-semibold hover:underline">
+                    Register Now
+                  </Link>
+                </p>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* <Image
+        src="/illustration-left.svg"
+        alt=""
+        width={300}
+        height={300}
+        className="absolute bottom-0 left-0 opacity-90"
+      />
+      <Image
+        src="/illustration-right.svg"
+        alt=""
+        width={350}
+        height={350}
+        className="absolute bottom-0 right-0 opacity-90"
+      /> */}
     </div>
   )
 }
