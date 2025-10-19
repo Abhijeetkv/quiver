@@ -101,11 +101,11 @@ export const LoginForm = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Enter Email / Phone No</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          placeholder="Enter your email or phone"
+                          placeholder="Enter your email"
                           className="rounded-xl"
                         />
                       </FormControl>
