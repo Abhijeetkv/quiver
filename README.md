@@ -302,8 +302,8 @@ Quiver integrates seamlessly with multiple AI providers through the Vercel AI SD
 - [ ] Workflow templates library
 
 ### AI Features
-- [ ] Multi-provider AI integration (OpenAI, Gemini, Claude)
-- [ ] AI step observability with Inngest
+- [x] Multi-provider AI integration (OpenAI, Gemini, Claude)
+- [x] AI step observability with Inngest
 - [ ] AI-powered workflow suggestions
 - [ ] Natural language workflow creation
 - [ ] Sentiment analysis actions
