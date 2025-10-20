@@ -19,6 +19,15 @@ export const metadata: Metadata = {
   description: "A modern, open-source automation platform",
 };
 
+/**
+ * Root layout that applies global fonts, provides TRPC context, and mounts a global toaster.
+ *
+ * Renders the top-level HTML and BODY elements with configured font CSS variables and antialiasing,
+ * wraps the app content with the TRPC React provider, and includes a Toaster for toast notifications.
+ *
+ * @param children - The application content to render inside the TRPC provider.
+ * @returns The root React element containing the HTML structure, body classes, TRPC provider, and Toaster.
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
