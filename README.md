@@ -25,7 +25,8 @@ Unlike traditional automation platforms, Quiver is:
 - 🤖 **AI-Powered Workflows** - Integrate with OpenAI, Google Gemini, and Anthropic Claude
 - 🔐 **Secure Authentication** - Built-in auth system with session management
 - 📊 **Monitoring & Logs** - Track your automation runs and performance
-- 🚀 **Scalable Architecture** - Built to handle high-volume workflows
+- � **Error Tracking** - Real-time error monitoring with Sentry
+- �🚀 **Scalable Architecture** - Built to handle high-volume workflows
 - 💾 **Persistent Storage** - PostgreSQL database with Prisma ORM
 - 🎯 **Type-Safe APIs** - End-to-end type safety with tRPC
 
@@ -46,6 +47,7 @@ Unlike traditional automation platforms, Quiver is:
 - **[Better Auth](https://better-auth.com/)** - Authentication library
 - **[Inngest](https://www.inngest.com/)** - Durable workflow engine for background jobs
 - **[Vercel AI SDK](https://sdk.vercel.ai/)** - Unified AI framework for LLMs
+- **[Sentry](https://sentry.io/)** - Error tracking and performance monitoring
 
 ### State Management & Data Fetching
 - **[TanStack Query](https://tanstack.com/query)** - Powerful data synchronization
@@ -60,6 +62,7 @@ Unlike traditional automation platforms, Quiver is:
 ### Developer Tools
 - **[Biome](https://biomejs.dev/)** - Fast formatter and linter
 - **[Turbopack](https://turbo.build/pack)** - Incremental bundler
+- **[Sentry](https://sentry.io/)** - Application monitoring and error tracking
 
 ## Getting Started
 
@@ -96,6 +99,9 @@ Unlike traditional automation platforms, Quiver is:
    OPENAI_API_KEY="your-openai-api-key"
    GOOGLE_GENERATIVE_AI_API_KEY="your-google-api-key"
    ANTHROPIC_API_KEY="your-anthropic-api-key"
+   
+   # Sentry (optional for error tracking)
+   SENTRY_DSN="your-sentry-dsn"
    
    # Inngest (optional for local dev, required for production)
    # INNGEST_EVENT_KEY="your-inngest-event-key"
@@ -160,6 +166,8 @@ quiver/
 │   ├── inngest/              # Background job definitions
 │   │   ├── client.ts         # Inngest client instance
 │   │   └── functions.ts      # Job functions (workflow & AI execution)
+│   ├── instrumentation.ts    # Server-side instrumentation (Sentry)
+│   ├── instrumentation-client.ts # Client-side instrumentation (Sentry)
 │   ├── lib/                  # Utility functions and configs
 │   │   ├── auth.ts           # Authentication configuration (Better Auth)
 │   │   ├── auth-client.ts    # Better Auth client (browser)
@@ -177,6 +185,8 @@ quiver/
 │   └── generated/
 │       └── prisma/           # Prisma Client output (configured in schema)
 ├── public/                   # Static assets
+├── sentry.server.config.ts   # Sentry server configuration
+├── sentry.edge.config.ts     # Sentry edge runtime configuration
 ├── biome.json               # Biome configuration
 ├── next.config.ts           # Next.js configuration
 └── tsconfig.json            # TypeScript configuration
@@ -266,6 +276,75 @@ Quiver integrates seamlessly with multiple AI providers through the Vercel AI SD
 | **Google Gemini** | Gemini 2.5 Flash, Gemini Pro | Fast responses, multimodal, long context |
 | **Anthropic Claude** | Claude Sonnet 4.5, Claude Opus | Extended context, complex reasoning, analysis |
 
+## Error Tracking & Monitoring
+
+Quiver uses [Sentry](https://sentry.io/) for comprehensive error tracking and performance monitoring across your entire application:
+
+- 🐛 **Real-time Error Tracking** - Catch and diagnose errors before users report them
+- 📊 **Performance Monitoring** - Track response times and identify bottlenecks
+- 🤖 **AI Integration Monitoring** - Vercel AI SDK integration for tracking AI operations
+- 🔍 **Session Replay** - See exactly what users experienced when errors occur
+- 📝 **Console Logging** - Capture console logs for better debugging
+- 🌐 **Full Stack Coverage** - Client, server, and edge runtime monitoring
+
+### Sentry Configuration
+
+Sentry is configured in three files:
+
+**Server-side** (`sentry.server.config.ts`):
+```ts
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [
+    // Track AI SDK operations
+    Sentry.vercelAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+  tracesSampleRate: 1,
+  enableLogs: true,
+  sendDefaultPii: true,
+});
+```
+
+**Edge Runtime** (`sentry.edge.config.ts`):
+```ts
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
+  ],
+  tracesSampleRate: 1,
+  enableLogs: true,
+});
+```
+
+**Client-side** (`src/instrumentation-client.ts`):
+```ts
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [
+    Sentry.replayIntegration(), // Session replay for debugging
+  ],
+  tracesSampleRate: 1,
+  enableLogs: true,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+```
+
+### Features Monitored
+
+- **Workflow Execution Errors** - Track failures in background jobs
+- **AI API Calls** - Monitor inputs, outputs, and failures from OpenAI, Gemini, Claude
+- **Database Queries** - Identify slow or failing Prisma operations
+- **Authentication Issues** - Capture auth failures and security events
+- **API Response Times** - Monitor tRPC endpoint performance
+
 
 ## Deployment
 
@@ -346,6 +425,13 @@ Currently implemented features:
   - Inngest AI wrapper for automatic retries and observability
   - Parallel AI model execution
   - Type-safe AI workflow definitions
+
+- ✅ **Error Tracking & Monitoring**
+  - Sentry integration for full-stack error tracking
+  - AI operation monitoring with Vercel AI SDK integration
+  - Session replay for debugging user issues
+  - Performance monitoring across client, server, and edge runtimes
+  - Console log capture for comprehensive debugging
 
 - ✅ **Modern UI Framework**
   - shadcn/ui components with Radix primitives
