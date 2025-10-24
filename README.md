@@ -24,11 +24,12 @@ Unlike traditional automation platforms, Quiver is:
 - 🎨 **Visual Workflow Builder** - Drag-and-drop interface for creating automations
 - 🤖 **AI-Powered Workflows** - Integrate with OpenAI, Google Gemini, and Anthropic Claude
 - 🔐 **Secure Authentication** - Built-in auth system with session management
-- 📊 **Monitoring & Logs** - Track your automation runs and performance
-- � **Error Tracking** - Real-time error monitoring with Sentry
-- �🚀 **Scalable Architecture** - Built to handle high-volume workflows
-- 💾 **Persistent Storage** - PostgreSQL database with Prisma ORM
-- 🎯 **Type-Safe APIs** - End-to-end type safety with tRPC
+ - 📊 **Monitoring & Logs** - Track your automation runs and performance
+ - 🐛 **Error Tracking** - Real-time error monitoring with Sentry
+ - 🧾 **Subscriptions & Billing** - Monetize with Polar checkout and customer portal
+ - 🚀 **Scalable Architecture** - Built to handle high-volume workflows
+ - 💾 **Persistent Storage** - PostgreSQL database with Prisma ORM
+ - 🎯 **Type-Safe APIs** - End-to-end type safety with tRPC
 
 ## Tech Stack
 
@@ -45,6 +46,7 @@ Unlike traditional automation platforms, Quiver is:
 - **[Prisma](https://www.prisma.io/)** - Next-generation ORM
 - **[PostgreSQL](https://www.postgresql.org/)** - Powerful, open-source database
 - **[Better Auth](https://better-auth.com/)** - Authentication library
+- **[Polar](https://polar.sh/)** - Subscriptions, checkout, and customer portal
 - **[Inngest](https://www.inngest.com/)** - Durable workflow engine for background jobs
 - **[Vercel AI SDK](https://sdk.vercel.ai/)** - Unified AI framework for LLMs
 - **[Sentry](https://sentry.io/)** - Error tracking and performance monitoring
@@ -102,6 +104,10 @@ Unlike traditional automation platforms, Quiver is:
    
    # Sentry (optional for error tracking)
    SENTRY_DSN="your-sentry-dsn"
+   
+  # Polar (subscriptions & billing)
+  POLAR_ACCESS_TOKEN="your-polar-access-token"
+  POLAR_SUCCESS_URL="http://localhost:3000" # Where to redirect after successful checkout
    
    # Inngest (optional for local dev, required for production)
    # INNGEST_EVENT_KEY="your-inngest-event-key"
@@ -172,6 +178,7 @@ quiver/
 │   │   ├── auth.ts           # Authentication configuration (Better Auth)
 │   │   ├── auth-client.ts    # Better Auth client (browser)
 │   │   ├── auth-utils.ts     # requireAuth / requireUnauth helpers
+│   │   ├── polar.ts          # Polar SDK client (subscriptions & billing)
 │   │   ├── db.ts             # Database client
 │   │   └── utils.ts          # Helper utilities
 │   └── trpc/                 # tRPC configuration
@@ -180,7 +187,7 @@ quiver/
 │       ├── query-client.ts   # TanStack Query client
 │       ├── routers/          # API routers
 │       │   └── _app.ts       # Root router (getWorkflows, createWorkflow, testAi)
-│       └── init.ts           # tRPC initialization & middlewares
+│       └── init.ts           # tRPC initialization, protectedProcedure & premiumProcedure
 │
 │   └── generated/
 │       └── prisma/           # Prisma Client output (configured in schema)
@@ -236,6 +243,43 @@ Quiver uses [Better Auth](https://better-auth.com/) for authentication, providin
 Authentication routes:
 - `/login` - User login
 - `/signup` - User registration
+
+## Subscriptions & Billing (Polar)
+
+Quiver integrates with [Polar](https://polar.sh/) to handle subscriptions, checkout, and customer portals. This lets you monetize premium features easily while keeping the developer experience smooth.
+
+### What’s included
+
+- 🔒 Create Polar customers automatically on signup
+- 🧾 Hosted checkout for paid plans (configured products)
+- 🪪 Customer portal for managing subscriptions
+- 🔐 Premium route protection via tRPC middleware
+
+### Where it’s configured
+
+- `src/lib/polar.ts` – Polar SDK client using `POLAR_ACCESS_TOKEN` (sandbox by default)
+- `src/lib/auth.ts` – Better Auth + Polar plugin configuration:
+  - `createCustomerOnSignUp: true`
+  - `checkout({ products: [...] , successUrl: POLAR_SUCCESS_URL })`
+  - `portal()` for self-serve subscription management
+- `src/trpc/init.ts` – `premiumProcedure` middleware that checks active subscriptions and throws `FORBIDDEN` if missing
+
+### Gating premium APIs (example)
+
+```ts
+// src/trpc/init.ts
+export const premiumProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const customer = await polarClient.customers.getStateExternal({
+    externalId: ctx.auth.user.id,
+  });
+  if (!customer.activeSubscriptions || customer.activeSubscriptions.length === 0) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Premium membership required' });
+  }
+  return next({ ctx: { ...ctx, customer } });
+});
+```
+
+Use `premiumProcedure` instead of `protectedProcedure` for any tRPC endpoints that require an active subscription.
 
 ## Workflows & Background Jobs
 
@@ -391,6 +435,7 @@ Sentry.init({
 - [ ] Vector embeddings and semantic search
 
 ### Platform Features
+- [x] Subscriptions & billing (Polar checkout & portal)
 - [ ] Team collaboration features
 - [ ] Analytics and insights dashboard
 - [ ] API rate limiting
@@ -425,6 +470,11 @@ Currently implemented features:
   - Inngest AI wrapper for automatic retries and observability
   - Parallel AI model execution
   - Type-safe AI workflow definitions
+
+- ✅ **Subscriptions & Billing**
+  - Polar integration with hosted checkout & customer portal
+  - Automatic customer creation on signup
+  - Premium API protection via `premiumProcedure`
 
 - ✅ **Error Tracking & Monitoring**
   - Sentry integration for full-stack error tracking
