@@ -40,6 +40,9 @@ Unlike traditional automation platforms, Quiver is:
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[Radix UI](https://www.radix-ui.com/)** - Unstyled, accessible component primitives
 - **[shadcn/ui](https://ui.shadcn.com/)** - Beautifully designed components
+ - **[Motion](https://motion.dev/)** - High-performance animations
+ - **[Embla Carousel](https://www.embla-carousel.com/)** - Performant carousel/slider
+ - **[Lucide Icons](https://lucide.dev/)** - Icon set for React
 
 ### Backend
 - **[tRPC](https://trpc.io/)** - End-to-end typesafe APIs
@@ -55,6 +58,7 @@ Unlike traditional automation platforms, Quiver is:
 - **[TanStack Query](https://tanstack.com/query)** - Powerful data synchronization
 - **[React Hook Form](https://react-hook-form.com/)** - Performant forms
 - **[Zod](https://zod.dev/)** - TypeScript-first schema validation
+ - **[nuqs](https://github.com/47ng/nuqs)** - URL search params state for Next.js
 
 ### AI & Machine Learning
 - **[OpenAI](https://openai.com/)** - GPT-4 and other OpenAI models
@@ -65,6 +69,10 @@ Unlike traditional automation platforms, Quiver is:
 - **[Biome](https://biomejs.dev/)** - Fast formatter and linter
 - **[Turbopack](https://turbo.build/pack)** - Incremental bundler
 - **[Sentry](https://sentry.io/)** - Application monitoring and error tracking
+ - **[react-error-boundary](https://github.com/bvaughn/react-error-boundary)** - Resilient UI error boundaries
+
+### Utilities
+- **[random-word-slugs](https://github.com/coollabsio/random-word-slugs)** - Human-readable ID/slug generation
 
 ## Getting Started
 
@@ -160,14 +168,21 @@ quiver/
 │   │   ├── (auth)/            # Authentication routes
 │   │   │   ├── login/        # Login page
 │   │   │   └── signup/       # Signup page
+│   │   ├── (dashboard)/       # App dashboard routes (editor, rest, etc.)
 │   │   ├── api/               # API routes
 │   │   │   ├── auth/[...all]/route.ts  # Better Auth handler
 │   │   │   └── inngest/route.ts        # Inngest webhook endpoint
 │   │   └── logout.tsx         # Logout button (client component)
 │   ├── components/
-│   │   └── ui/               # Reusable UI components
+│   │   ├── app-header.tsx     # Header
+│   │   ├── app-sidebar.tsx    # Sidebar
+│   │   └── ui/                # Reusable UI components
+│   ├── config/
+│   │   └── constants.ts       # App constants & configuration
 │   ├── features/
-│   │   └── auth/             # Authentication features
+│   │   ├── auth/              # Authentication features
+│   │   ├── subscriptions/     # Polar subscription UI/flows
+│   │   └── workflows/         # Workflow-related UI/logic
 │   ├── hooks/                # Custom React hooks
 │   ├── inngest/              # Background job definitions
 │   │   ├── client.ts         # Inngest client instance
