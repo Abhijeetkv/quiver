@@ -43,6 +43,8 @@ Unlike traditional automation platforms, Quiver is:
  - **[Motion](https://motion.dev/)** - High-performance animations
  - **[Embla Carousel](https://www.embla-carousel.com/)** - Performant carousel/slider
  - **[Lucide Icons](https://lucide.dev/)** - Icon set for React
+ - **[React Flow (XYFlow)](https://xyflow.com/)** - Graph editor for the visual workflow builder
+ - **[next-themes](https://github.com/pacocoursey/next-themes)** - Theme switching for Next.js
 
 ### Backend
 - **[tRPC](https://trpc.io/)** - End-to-end typesafe APIs
@@ -53,12 +55,14 @@ Unlike traditional automation platforms, Quiver is:
 - **[Inngest](https://www.inngest.com/)** - Durable workflow engine for background jobs
 - **[Vercel AI SDK](https://sdk.vercel.ai/)** - Unified AI framework for LLMs
 - **[Sentry](https://sentry.io/)** - Error tracking and performance monitoring
+ - **[SuperJSON](https://github.com/blitz-js/superjson)** - Rich data serialization for tRPC
 
 ### State Management & Data Fetching
 - **[TanStack Query](https://tanstack.com/query)** - Powerful data synchronization
 - **[React Hook Form](https://react-hook-form.com/)** - Performant forms
 - **[Zod](https://zod.dev/)** - TypeScript-first schema validation
  - **[nuqs](https://github.com/47ng/nuqs)** - URL search params state for Next.js
+ - **[react-resizable-panels](https://github.com/bvaughn/react-resizable-panels)** - Resizable split panes
 
 ### AI & Machine Learning
 - **[OpenAI](https://openai.com/)** - GPT-4 and other OpenAI models
@@ -73,6 +77,10 @@ Unlike traditional automation platforms, Quiver is:
 
 ### Utilities
 - **[random-word-slugs](https://github.com/coollabsio/random-word-slugs)** - Human-readable ID/slug generation
+ - **[date-fns](https://date-fns.org/)** - Date utilities
+ - **[react-day-picker](https://react-day-picker.js.org/)** - Date picker component
+ - **[Recharts](https://recharts.org/en-US)** - Composable charting library
+ - **[vaul](https://vaul.emilkowal.ski/)** - Accessible drawer component
 
 ## Getting Started
 
@@ -170,9 +178,14 @@ quiver/
 │   │   │   └── signup/       # Signup page
 │   │   ├── (dashboard)/       # App dashboard routes (editor, rest, etc.)
 │   │   ├── api/               # API routes
-│   │   │   ├── auth/[...all]/route.ts  # Better Auth handler
-│   │   │   └── inngest/route.ts        # Inngest webhook endpoint
-│   │   └── logout.tsx         # Logout button (client component)
+│   │   │   ├── auth/[...all]/route.ts        # Better Auth handler
+│   │   │   ├── inngest/route.ts              # Inngest webhook endpoint
+│   │   │   ├── trpc/[trpc]/route.ts          # tRPC HTTP handler
+│   │   │   └── sentry-example-api/           # Sentry sample API route
+│   │   ├── sentry-example-page/              # Sentry sample page (client)
+│   │   │   └── page.tsx
+│   │   ├── global-error.tsx         # Global error boundary (reports to Sentry)
+│   │   └── globals.css              # Global styles
 │   ├── components/
 │   │   ├── app-header.tsx     # Header
 │   │   ├── app-sidebar.tsx    # Sidebar
@@ -201,8 +214,8 @@ quiver/
 │       ├── server.tsx        # Server-side tRPC caller
 │       ├── query-client.ts   # TanStack Query client
 │       ├── routers/          # API routers
-│       │   └── _app.ts       # Root router (getWorkflows, createWorkflow, testAi)
-│       └── init.ts           # tRPC initialization, protectedProcedure & premiumProcedure
+│       │   └── _app.ts       # Root router mounts domain routers (e.g. workflows)
+│       └── init.ts           # tRPC init, superjson, protectedProcedure & premiumProcedure
 │
 │   └── generated/
 │       └── prisma/           # Prisma Client output (configured in schema)
@@ -229,11 +242,19 @@ quiver/
 
 The application uses PostgreSQL with Prisma ORM. Key models include:
 
-- **User** - User accounts with email verification
-- **Session** - User sessions with IP and user agent tracking
-- **Account** - OAuth and credential accounts
-- **Verification** - Email and identity verification tokens
-- **Workflow** - Automation workflows created by users
+- **User** – Core user record; relates to sessions, accounts, and workflows
+- **Session** – Session records with IP and user agent tracking
+- **Account** – OAuth/credentials account linkage
+- **Verification** – Email and identity verification tokens
+- **Workflow** – Workflow document owned by a user; relates to nodes and connections
+- **Node** – A node inside a workflow graph with position, type, and data
+- **Connection** – An edge from one node to another; unique per from/to/handle pair
+- **NodeType (enum)** – Currently `INITIAL`; extend as more node types are added
+
+Relationships:
+- A `User` has many `Workflow`s
+- A `Workflow` has many `Node`s and many `Connection`s
+- Each `Connection` links `fromNode -> toNode` with optional `fromOutput/toInput` handles
 
 Run migrations with:
 ```bash
@@ -298,13 +319,22 @@ Use `premiumProcedure` instead of `protectedProcedure` for any tRPC endpoints th
 
 ## Workflows & Background Jobs
 
-Quiver uses [Inngest](https://www.inngest.com/) for reliable, durable workflow execution. Background jobs are:
+There are two related concerns in the codebase:
 
-- ✅ **Reliable** - Automatic retries and error handling
-- ✅ **Observable** - Built-in logging and monitoring
-- ✅ **Type-safe** - Full TypeScript support
-- ✅ **Durable** - Multi-step workflows with sleep/wait capabilities
+1) Workflow CRUD and visual editing (synchronous, via tRPC + Prisma):
+- API lives in `src/features/workflows/server/routers.ts` mounted under `workflows` in the root router
+- Endpoints:
+  - `workflows.create` – Premium-gated; creates a new workflow pre-seeded with an `INITIAL` node
+  - `workflows.remove` – Delete a workflow owned by the current user
+  - `workflows.updateName` – Rename a workflow
+  - `workflows.getOne` – Returns nodes and edges transformed to `@xyflow/react` shape
+  - `workflows.getMany` – Paginated list with search and sorting
+- Uses `random-word-slugs` to generate default names
+- Uses `premiumProcedure` to enforce active subscription on create
 
+2) Background jobs (asynchronous, via Inngest):
+- Inngest is integrated and currently used to demonstrate an AI execution pipeline
+- Function id `execute-ai` handles the `execute/ai` event and runs multiple AI providers in parallel with observability
 
 ### Inngest Dev Server
 
@@ -327,13 +357,13 @@ Quiver integrates seamlessly with multiple AI providers through the Vercel AI SD
 - ⚡ **Parallel Processing** - Run multiple AI models simultaneously
 
 
-### Supported AI Models
+### Supported AI Models (as configured)
 
-| Provider | Models | Use Case |
-|----------|--------|----------|
-| **OpenAI** | GPT-4, GPT-4 Turbo, GPT-3.5 | General-purpose, reasoning, code generation |
-| **Google Gemini** | Gemini 2.5 Flash, Gemini Pro | Fast responses, multimodal, long context |
-| **Anthropic Claude** | Claude Sonnet 4.5, Claude Opus | Extended context, complex reasoning, analysis |
+| Provider | Model in code | Notes |
+|----------|----------------|-------|
+| OpenAI | `gpt-4` | General-purpose, reasoning, code generation |
+| Google Gemini | `gemini-2.5-flash` | Fast responses, long context |
+| Anthropic Claude | `claude-sonnet-4-5` | Extended context, complex reasoning |
 
 ## Error Tracking & Monitoring
 
@@ -403,6 +433,9 @@ Sentry.init({
 - **Database Queries** - Identify slow or failing Prisma operations
 - **Authentication Issues** - Capture auth failures and security events
 - **API Response Times** - Monitor tRPC endpoint performance
+
+Try it locally:
+- Visit `/sentry-example-page` to send a sample frontend error and trace a request through `/api/sentry-example-api`.
 
 
 ## Deployment
@@ -513,24 +546,17 @@ Currently implemented features:
 ### Current Flow Example
 
 1. User signs up/logs in → Better Auth creates session
-2. User clicks "Create Workflow" → tRPC mutation triggered
-3. Backend queues Inngest job → `test/hello.world` event sent
-4. Inngest function executes multi-step workflow:
-   - Fetches data (with 5s delay simulation)
-   - Processes data (with 5s delay simulation)
-   - Creates workflow record in database
-5. UI updates with success toast notification
+2. User clicks "Create Workflow" → `workflows.create` mutation runs (premium-gated)
+3. Prisma creates workflow plus an initial `INITIAL` node
+4. UI navigates to the editor and loads via `workflows.getOne` → nodes and edges in `@xyflow/react` shape
+5. User edits graph; server persists changes via dedicated endpoints (TBD)
 
-**AI Workflow Example:**
+**AI Execution Example:**
 
-1. User clicks "Test AI" → tRPC `testAi` mutation triggered
-2. Backend queues AI job → `execute/ai` event sent to Inngest
-3. Inngest function executes parallel AI calls:
-   - Google Gemini processes the prompt
-   - OpenAI GPT-4 processes the same prompt
-   - Anthropic Claude processes the same prompt
-4. All responses collected and returned with full observability
-5. UI shows success notification
+1. User triggers an AI test → backend emits `execute/ai` event
+2. Inngest function `execute-ai` runs three providers in parallel (Gemini, OpenAI, Claude)
+3. Each call is wrapped with `step.ai.wrap` for retries and telemetry (visible in Inngest + Sentry)
+4. Result aggregated and returned/logged with full observability
 
 ## Contributing
 
