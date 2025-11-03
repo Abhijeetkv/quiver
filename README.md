@@ -63,6 +63,7 @@ Unlike traditional automation platforms, Quiver is:
 - **[Zod](https://zod.dev/)** - TypeScript-first schema validation
  - **[nuqs](https://github.com/47ng/nuqs)** - URL search params state for Next.js
  - **[react-resizable-panels](https://github.com/bvaughn/react-resizable-panels)** - Resizable split panes
+ - **[jotai](https://jotai.org/)** - Lightweight state management used in parts of the UI
 
 ### AI & Machine Learning
 - **[OpenAI](https://openai.com/)** - GPT-4 and other OpenAI models
@@ -81,6 +82,7 @@ Unlike traditional automation platforms, Quiver is:
  - **[react-day-picker](https://react-day-picker.js.org/)** - Date picker component
  - **[Recharts](https://recharts.org/en-US)** - Composable charting library
  - **[vaul](https://vaul.emilkowal.ski/)** - Accessible drawer component
+ - **[@paralleldrive/cuid2](https://github.com/paralleldrive/cuid2)** - Compact id generation used in the codebase
 
 ## Getting Started
 
@@ -130,6 +132,24 @@ Unlike traditional automation platforms, Quiver is:
    # INNGEST_SIGNING_KEY="your-inngest-signing-key"
    ```
 
+### Environment variables (detailed)
+
+The app expects the following environment variables (explanations):
+
+- `DATABASE_URL` — Postgres connection string used by Prisma
+- `BETTER_AUTH_SECRET` — Secret for Better Auth (session signing)
+- `BETTER_AUTH_URL` — The base URL used by Better Auth for emails and redirects
+- `OPENAI_API_KEY` — OpenAI API key (used by the Vercel AI SDK)
+- `GOOGLE_GENERATIVE_AI_API_KEY` — Google Generative AI key (Gemini)
+- `ANTHROPIC_API_KEY` — Anthropic API key (Claude)
+- `SENTRY_DSN` — Sentry DSN for error tracking (optional)
+- `POLAR_ACCESS_TOKEN` — Polar API token (sandbox by default)
+- `POLAR_SUCCESS_URL` — Redirect URL after successful Polar checkout
+- `INNGEST_EVENT_KEY` — (Optional) Inngest event key for remote event publishing
+- `INNGEST_SIGNING_KEY` — (Optional) Inngest signing key for webhook verification
+
+Keep secrets out of source control. For local development you can create `.env.local` and add values there.
+
 4. **Run database migrations**
    ```bash
    pnpm prisma migrate dev
@@ -168,63 +188,65 @@ Unlike traditional automation platforms, Quiver is:
 
 ```
 quiver/
-├── prisma/
-│   ├── schema.prisma          # Database schema
-│   └── migrations/            # Database migrations
+├── .env                      # Local environment (not checked in)
+├── .env.sentry-build-plugin  # Sentry build plugin env shim
+├── prisma/                   # Prisma schema & migrations
+│   ├── schema.prisma
+│   └── migrations/
 ├── src/
-│   ├── app/                   # Next.js App Router pages
-│   │   ├── (auth)/            # Authentication routes
-│   │   │   ├── login/        # Login page
-│   │   │   └── signup/       # Signup page
-│   │   ├── (dashboard)/       # App dashboard routes (editor, rest, etc.)
-│   │   ├── api/               # API routes
-│   │   │   ├── auth/[...all]/route.ts        # Better Auth handler
-│   │   │   ├── inngest/route.ts              # Inngest webhook endpoint
-│   │   │   ├── trpc/[trpc]/route.ts          # tRPC HTTP handler
-│   │   │   └── sentry-example-api/           # Sentry sample API route
-│   │   ├── sentry-example-page/              # Sentry sample page (client)
-│   │   │   └── page.tsx
-│   │   ├── global-error.tsx         # Global error boundary (reports to Sentry)
-│   │   └── globals.css              # Global styles
-│   ├── components/
-│   │   ├── app-header.tsx     # Header
-│   │   ├── app-sidebar.tsx    # Sidebar
-│   │   └── ui/                # Reusable UI components
-│   ├── config/
-│   │   └── constants.ts       # App constants & configuration
-│   ├── features/
-│   │   ├── auth/              # Authentication features
-│   │   ├── subscriptions/     # Polar subscription UI/flows
-│   │   └── workflows/         # Workflow-related UI/logic
-│   ├── hooks/                # Custom React hooks
-│   ├── inngest/              # Background job definitions
-│   │   ├── client.ts         # Inngest client instance
-│   │   └── functions.ts      # Job functions (workflow & AI execution)
-│   ├── instrumentation.ts    # Server-side instrumentation (Sentry)
-│   ├── instrumentation-client.ts # Client-side instrumentation (Sentry)
-│   ├── lib/                  # Utility functions and configs
-│   │   ├── auth.ts           # Authentication configuration (Better Auth)
-│   │   ├── auth-client.ts    # Better Auth client (browser)
-│   │   ├── auth-utils.ts     # requireAuth / requireUnauth helpers
-│   │   ├── polar.ts          # Polar SDK client (subscriptions & billing)
-│   │   ├── db.ts             # Database client
-│   │   └── utils.ts          # Helper utilities
-│   └── trpc/                 # tRPC configuration
-│       ├── client.tsx        # TRPC React provider/client
-│       ├── server.tsx        # Server-side tRPC caller
-│       ├── query-client.ts   # TanStack Query client
-│       ├── routers/          # API routers
-│       │   └── _app.ts       # Root router mounts domain routers (e.g. workflows)
-│       └── init.ts           # tRPC init, superjson, protectedProcedure & premiumProcedure
-│
+│   ├── app/                  # Next.js App Router
+│   │   ├── (auth)/           # Authentication route-group (login, signup)
+│   │   ├── (dashboard)/      # Dashboard route-group (editor, rest)
+│   │   ├── api/              # HTTP API routes
+│   │   │   ├── auth/[...all]/route.ts    # Better Auth handler
+│   │   │   ├── inngest/route.ts          # Inngest webhook endpoint
+│   │   │   ├── trpc/[trpc]/route.ts      # tRPC HTTP handler
+│   │   │   └── sentry-example-api/       # Sentry sample API route
+│   │   ├── sentry-example-page/          # Sentry sample frontend page
+│   │   ├── global-error.tsx              # App-level error reporter (reports to Sentry)
+│   │   ├── globals.css                   # Global styles
+│   │   └── layout.tsx                    # Root layout for App Router
+│   ├── components/        # Shared UI components (app-header, app-sidebar, ui/*)
+│   ├── config/            # App constants (`constants.ts`)
+│   ├── features/          # Domain feature folders
+│   │   ├── auth/
+│   │   ├── editor/
+│   │   ├── executions/
+│   │   ├── subscriptions/
+│   │   ├── triggers/
+│   │   └── workflows/     # Workflow editor UI + server router
+│   ├── hooks/             # Custom React hooks
+│   ├── inngest/           # Background jobs / function definitions
+│   │   ├── client.ts
+│   │   └── functions.ts
+│   ├── instrumentation.ts         # Server Sentry init
+│   ├── instrumentation-client.ts  # Client Sentry + session replay init
+│   ├── lib/               # Utilities and integrations
+│   │   ├── auth.ts
+│   │   ├── auth-client.ts
+│   │   ├── auth-utils.ts
+│   │   ├── db.ts
+│   │   ├── polar.ts
+│   │   └── utils.ts
+│   ├── trpc/              # tRPC wiring
+│   │   ├── client.tsx
+│   │   ├── init.ts
+│   │   ├── query-client.ts
+│   │   ├── server.tsx
+│   │   └── routers/
+│   │       └── _app.ts
 │   └── generated/
-│       └── prisma/           # Prisma Client output (configured in schema)
-├── public/                   # Static assets
-├── sentry.server.config.ts   # Sentry server configuration
-├── sentry.edge.config.ts     # Sentry edge runtime configuration
-├── biome.json               # Biome configuration
-├── next.config.ts           # Next.js configuration
-└── tsconfig.json            # TypeScript configuration
+│       └── prisma/        # Prisma Client output
+├── public/                # Static assets (icons, images)
+├── sentry.server.config.ts
+├── sentry.edge.config.ts
+├── package.json
+├── next.config.ts
+├── postcss.config.mjs
+├── biome.json
+├── components.json
+├── tsconfig.json
+└── README.md
 ```
 
 ## Available Scripts
@@ -250,6 +272,8 @@ The application uses PostgreSQL with Prisma ORM. Key models include:
 - **Node** – A node inside a workflow graph with position, type, and data
 - **Connection** – An edge from one node to another; unique per from/to/handle pair
 - **NodeType (enum)** – Currently `INITIAL`; extend as more node types are added
+
+- **NodeType (enum)** – Values: `INITIAL`, `MANUAL_TRIGGER`, `HTTP_REQUEST` (extendable as new node types are added)
 
 Relationships:
 - A `User` has many `Workflow`s
@@ -345,6 +369,35 @@ npx inngest-cli@latest dev
 ```
 
 Then visit [http://localhost:8288](http://localhost:8288) to view the dashboard.
+
+### Client usage (tRPC)
+
+A tiny example showing how to call the `workflows` endpoints using the tRPC React context exported from `src/trpc/client.tsx`:
+
+```tsx
+import { useTRPC } from '@/trpc/client';
+
+export default function WorkflowsList() {
+  const trpc = useTRPC();
+
+  // Paginated list
+  const { data } = trpc.workflows.getMany.useQuery({ page: 1, pageSize: 10 });
+
+  // Create (premium-gated)
+  const create = trpc.workflows.create.useMutation();
+
+  return (
+    <div>
+      <button onClick={() => create.mutateAsync()}>Create workflow</button>
+      <ul>
+        {data?.items?.map((wf) => (
+          <li key={wf.id}>{wf.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
 
 ## AI Integration
 
@@ -587,4 +640,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Star ⭐ this repository if you find it helpful!
-
